@@ -91,7 +91,7 @@ const CreatePodcast = () => {
           />
 
           <div className="flex flex-col gap-2.5">
-            <Label className="text-16 font-bold text-white-1">
+            <Label className="text-16 font-bold text-white-1 ">
               Select AI Voice
             </Label>
 
