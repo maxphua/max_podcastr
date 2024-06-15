@@ -5,8 +5,20 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { cn } from "@/lib/utils"
+import { Id } from "@/convex/_generated/dataModel"
+import { useMutation } from "convex/react"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Loader } from "lucide-react"
+
+import GeneratePodcast from "@/components/GeneratePodcast"
+import GenerateThumbnail from "@/components/GenerateThumbnail"
+import { useToast } from "@/components/ui/use-toast"
+
 import {
   Form,
   FormControl,
@@ -16,8 +28,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 
 import {
   Select,
@@ -26,11 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import GeneratePodcast from "@/components/GeneratePodcast"
-import GenerateThumbnail from "@/components/GenerateThumbnail"
-import { Loader } from "lucide-react"
-import { Id } from "@/convex/_generated/dataModel"
+import { api } from "@/convex/_generated/api"
+
 
 const voiceCategories = ['alloy', 'shimmer', 'nova', 'echo', 'fable', 'onyx'];
 
@@ -42,6 +49,9 @@ const formSchema = z.object({
 
 const CreatePodcast = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { toast } = useToast()
+  const createPodcast = useMutation(api.podcasts.createPodcast)
+  const router = useRouter()
   
   const [imagePrompt, setImagePrompt] = useState('');
   const [imageStorageId, setImageStorageId] = useState<Id<"_storage"> | null>(null)
@@ -62,10 +72,41 @@ const CreatePodcast = () => {
     },
   })
  
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values)
+ async function onSubmit(data: z.infer<typeof formSchema>) {
+    try {
+      setIsSubmitting(true);
+      if(!audioUrl || !imageUrl || !voiceType) {
+        toast({
+          title: 'Please generate audio and image',
+        })
+        setIsSubmitting(false);
+        throw new Error('Please generate audio and image')
+      }
+
+      const podcast = await createPodcast({
+        podcastTitle: data.podcastTitle,
+        podcastDescription: data.podcastDescription,
+        audioUrl,
+        imageUrl,
+        voiceType,
+        imagePrompt,
+        voicePrompt,
+        views: 0,
+        audioDuration,
+        audioStorageId: audioStorageId!,
+        imageStorageId: imageStorageId!,
+      })
+      toast({ title: 'Podcast created' })
+      setIsSubmitting(false);
+      router.push('/')
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: 'Error',
+        variant: 'destructive',
+      })
+      setIsSubmitting(false);
+    }
   }
 
   return (
